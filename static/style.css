@@ -1,0 +1,232 @@
+:root {
+  --primary-color: #6c5ce7;
+  --primary-hover: #5b4cc4;
+  --secondary-color: #00cec9;
+  --bg-color: #0d1117;
+  --card-bg: rgba(22, 27, 34, 0.8);
+  --text-primary: #f0f6fc;
+  --text-secondary: #8b949e;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+}
+
+body {
+  font-family: var(--font-family);
+  background: var(--bg-color);
+  color: var(--text-primary);
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(108, 92, 231, 0.1), transparent 30%),
+    radial-gradient(circle at 90% 80%, rgba(0, 206, 201, 0.1), transparent 30%);
+}
+
+.container {
+  width: 90%;
+  max-width: 500px;
+  background: var(--card-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 40px;
+  border-radius: 20px;
+  border: var(--glass-border);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  text-align: center;
+}
+
+header {
+  margin-bottom: 30px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--primary-color);
+  margin-bottom: 5px;
+}
+
+.logo .material-icons-round {
+  font-size: 32px;
+}
+
+h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.5px;
+  color: #fff;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+/* Upload Area */
+.drop-zone {
+  border: 2px dashed var(--border-color);
+  border-radius: 12px;
+  padding: 40px 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--glass-bg);
+}
+
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--primary-color);
+  background: rgba(108, 92, 231, 0.1);
+}
+
+.drop-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.upload-icon {
+  font-size: 48px;
+  color: var(--primary-color);
+}
+
+.drop-content h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.drop-content p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  border: none;
+  padding: 12px 24px;
+  color: white;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.4);
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 15px;
+  text-decoration: underline;
+}
+
+.btn-text:hover {
+  color: var(--text-primary);
+}
+
+#file-input {
+  display: none;
+}
+
+/* Progress & Logs */
+.hidden {
+  display: none !important;
+}
+
+#progress-container {
+  margin-top: 30px;
+  text-align: left;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 8px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.log-container {
+  margin-top: 15px;
+  height: 150px;
+  background: #000;
+  border-radius: 8px;
+  padding: 10px;
+  overflow-y: auto;
+  font-family: 'Fira Code', monospace;
+  font-size: 12px;
+  color: #00cec9;
+  border: 1px solid var(--border-color);
+}
+
+.log-entry {
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.log-error {
+  color: #ff7675;
+}
+
+/* Result Screen */
+#result-container {
+  margin-top: 30px;
+}
+
+.success-icon {
+  font-size: 64px;
+  color: #00b894;
+  margin-bottom: 20px;
+  animation: scaleIn 0.5s ease-out backwards;
+}
+
+@keyframes scaleIn {
+  0% { transform: scale(0); opacity: 0; }
+  80% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.download-btn_large {
+  display: flex;
+  width: 100%;
+  margin-top: 20px;
+  box-sizing: border-box;
+}

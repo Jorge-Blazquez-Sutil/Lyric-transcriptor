@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Muzon-Club Downloader & Transcriber</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Google Fonts for premium feel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <span class="material-icons-round">music_note</span>
+                <h1>Muzon Fetcher</h1>
+            </div>
+            <p class="subtitle">Download and transcribe audio effortlessly</p>
+        </header>
+
+        <main>
+            <div id="drop-zone" class="drop-zone">
+                <div class="drop-content">
+                    <span class="material-icons-round upload-icon">cloud_upload</span>
+                    <h2>Drag & Drop your file here</h2>
+                    <p>Supports .xlsx, .xls, .csv</p>
+                    <button class="btn-primary" onclick="document.getElementById('file-input').click()">Browse Files</button>
+                    <input type="file" id="file-input" hidden accept=".xlsx, .xls, .csv">
+                </div>
+            </div>
+
+            <div id="progress-container" class="hidden">
+                <div class="progress-header">
+                    <span id="status-text">Uploading...</span>
+                    <span id="percentage">0%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div id="progress-bar" class="progress-bar-fill"></div>
+                </div>
+                <div id="log-container" class="log-container">
+                    <!-- Logs will appear here -->
+                </div>
+            </div>
+
+            <div id="result-container" class="hidden">
+                <div class="success-icon">
+                    <span class="material-icons-round">check_circle</span>
+                </div>
+                <h2>Process Complete!</h2>
+                <p>Your files are ready for download.</p>
+                <a id="download-btn" href="#" class="btn-primary download-btn_large">
+                    <span class="material-icons-round">download</span>
+                    Download ZIP
+                </a>
+                <button class="btn-text" onclick="location.reload()">Process Another File</button>
+            </div>
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
