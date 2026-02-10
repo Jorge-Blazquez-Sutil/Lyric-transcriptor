@@ -183,4 +183,4 @@ def download_result(filename):
     return send_file(os.path.join(app.config['RESULTS_FOLDER'], filename), as_attachment=True)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
