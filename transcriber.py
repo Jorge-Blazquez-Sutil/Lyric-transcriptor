@@ -1,6 +1,6 @@
 import whisper
 
-def transcribe_audio(audio_path, model_size='medium'):
+def transcribe_audio(audio_path, model_size='base'):
     """
     Transcribes audio file to text using OpenAI Whisper.
     
