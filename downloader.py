@@ -102,6 +102,12 @@ def download_audio_from_url(url, output_dir):
         except Exception as e:
             print(f"Muzon-club scraper error: {e}")
     
+    
+    # Check for SoundCloud URLs
+    if 'soundcloud.com' in url:
+        from soundcloud_downloader import download_soundcloud
+        return download_soundcloud(url, output_dir)
+
     # Fallback to yt-dlp for other sites
     try:
         ydl_opts = {

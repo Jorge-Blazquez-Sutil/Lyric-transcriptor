@@ -80,7 +80,10 @@ def process_file(job_id, file_path):
                 jobs[job_id]['status'] = f"Transcribing {current_idx}/{total_urls}: {os.path.basename(audio_path)}"
                 jobs[job_id]['log'].append(f"Transcribing...")
                 
+
+                print(f"[DEBUG] Calling transcribe_audio for {os.path.basename(audio_path)}")
                 transcript_text = transcribe_audio(audio_path)
+                print(f"[DEBUG] Returned from transcribe_audio")
                 
                 # Save transcription
                 txt_filename = os.path.splitext(os.path.basename(audio_path))[0] + ".txt"
