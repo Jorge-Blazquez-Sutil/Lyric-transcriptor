@@ -3,6 +3,7 @@ import time
 import json
 import zipfile
 import threading
+import shutil
 import pandas as pd
 from flask import Flask, request, jsonify, send_file, render_template, Response
 import uuid
@@ -76,19 +77,31 @@ def process_file(job_id, file_path):
                 audio_files.append(audio_path)
                 jobs[job_id]['log'].append(f"Downloaded: {os.path.basename(audio_path)}")
                 
-                # 2. Transcribe Audio
+                # 2. Transcribe Audio (with vocal separation)
                 jobs[job_id]['status'] = f"Transcribing {current_idx}/{total_urls}: {os.path.basename(audio_path)}"
-                jobs[job_id]['log'].append(f"Transcribing...")
-                
-                transcript_text = transcribe_audio(audio_path)
-                
+                jobs[job_id]['log'].append(f"Transcribing with vocal separation...")
+
+                transcript_text = transcribe_audio(audio_path, use_separation=True)
+
                 # Save transcription
                 txt_filename = os.path.splitext(os.path.basename(audio_path))[0] + ".txt"
                 txt_path = os.path.join(job_dir, txt_filename)
                 with open(txt_path, 'w', encoding='utf-8') as f:
                     f.write(transcript_text)
-                    
-                jobs[job_id]['log'].append(f"Transcription saved.")
+
+                # Copy separated audio files to job directory
+                audio_basename = os.path.splitext(os.path.basename(audio_path))[0]
+                separated_source_dir = os.path.join(os.path.dirname(audio_path), f"{audio_basename}_separated", 'htdemucs')
+
+                if os.path.exists(separated_source_dir):
+                    separated_dest_dir = os.path.join(job_dir, 'separated_audio', audio_basename)
+                    if os.path.exists(separated_dest_dir):
+                        shutil.rmtree(separated_dest_dir)
+                    os.makedirs(os.path.dirname(separated_dest_dir), exist_ok=True)
+                    shutil.copytree(separated_source_dir, separated_dest_dir)
+                    jobs[job_id]['log'].append(f"Separated audio files saved.")
+
+                jobs[job_id]['log'].append(f"Transcription completed.")
                 
             except Exception as e:
                 jobs[job_id]['log'].append(f"Error processing {url}: {str(e)}")
