@@ -48,28 +48,45 @@ def process_file(job_id, file_path):
         if 'URL' not in df.columns:
             raise ValueError("File must contain a column named 'URL'")
             
-        urls = df['URL'].dropna().tolist()
-        total_urls = len(urls)
+        rows = df.to_dict('records')
+        total_urls = len(rows)
         
         if total_urls == 0:
-            raise ValueError("No URLs found in the 'URL' column")
+            raise ValueError("No rows found")
             
         jobs[job_id]['log'].append(f"Found {total_urls} URLs to process.")
         
         # Process each URL
         audio_files = []
         
-        for i, url in enumerate(urls):
+        # Helper for separation
+        from audio_separator import separate_audio
+        import shutil
+        
+        for i, row in enumerate(rows):
+            url = row.get('URL')
+            if not url or pd.isna(url):
+                continue
+                
+            platform = row.get('PLATAFORMA')
+            if pd.isna(platform):
+                platform = None
+                
+            temp_demucs_dir = None
             try:
                 # Update progress
                 current_idx = i + 1
-                progress = 10 + (current_idx / total_urls) * 70 # Allocating 70% of progress to processing
+                progress = 10 + (current_idx / total_urls) * 70 
                 jobs[job_id]['progress'] = progress
                 jobs[job_id]['status'] = f"Processing {current_idx}/{total_urls}: {url}"
-                jobs[job_id]['log'].append(f"Downloading: {url}")
+                
+                log_msg = f"Downloading: {url}"
+                if platform:
+                    log_msg += f" (Platform: {platform})"
+                jobs[job_id]['log'].append(log_msg)
                 
                 # 1. Download Audio
-                audio_path = download_audio_from_url(url, job_dir)
+                audio_path = download_audio_from_url(url, job_dir, platform=platform)
                 if not audio_path:
                     jobs[job_id]['log'].append(f"Failed to download: {url}")
                     continue
@@ -77,15 +94,35 @@ def process_file(job_id, file_path):
                 audio_files.append(audio_path)
                 jobs[job_id]['log'].append(f"Downloaded: {os.path.basename(audio_path)}")
                 
-                # 2. Transcribe Audio (with vocal separation)
-                jobs[job_id]['status'] = f"Transcribing {current_idx}/{total_urls}: {os.path.basename(audio_path)}"
-                jobs[job_id]['log'].append(f"Transcribing with vocal separation...")
+                # 2. Separate Vocals (Demucs)
+                jobs[job_id]['status'] = f"Separating vocals {current_idx}/{total_urls}: {os.path.basename(audio_path)}"
+                jobs[job_id]['log'].append(f"Separating vocals...")
+                
+                # Create a temp dir for this file's separation to keep main dir clean
+                temp_demucs_dir = os.path.join(job_dir, f"temp_demucs_{i}")
+                vocals_path = separate_audio(audio_path, output_base_dir=temp_demucs_dir)
+                
+                transcription_source = vocals_path if vocals_path else audio_path
+                
+                if vocals_path:
+                    jobs[job_id]['log'].append(f"Vocals separated successfully.")
+                else:
+                    jobs[job_id]['log'].append(f"Vocal separation failed, using original audio.")
 
-                transcript_text = transcribe_audio(audio_path, use_separation=True)
-
+                # 3. Transcribe Audio
+                jobs[job_id]['status'] = f"Transcribing {current_idx}/{total_urls}..."
+                jobs[job_id]['log'].append(f"Transcribing...")
+                
+                print(f"[DEBUG] Calling transcribe_audio for {os.path.basename(transcription_source)}")
+                transcript_text = transcribe_audio(transcription_source)
+                print(f"[DEBUG] Returned from transcribe_audio")
+                
                 # Save transcription
-                txt_filename = os.path.splitext(os.path.basename(audio_path))[0] + ".txt"
+                # Use original filename base for the txt file
+                original_base = os.path.splitext(os.path.basename(audio_path))[0]
+                txt_filename = original_base + ".txt"
                 txt_path = os.path.join(job_dir, txt_filename)
+                
                 with open(txt_path, 'w', encoding='utf-8') as f:
                     f.write(transcript_text)
 
@@ -105,6 +142,13 @@ def process_file(job_id, file_path):
                 
             except Exception as e:
                 jobs[job_id]['log'].append(f"Error processing {url}: {str(e)}")
+            finally:
+                # Cleanup Demucs temp files for this track
+                if temp_demucs_dir and os.path.exists(temp_demucs_dir):
+                    try:
+                        shutil.rmtree(temp_demucs_dir)
+                    except Exception as e:
+                        print(f"Failed to clean up temp dir {temp_demucs_dir}: {e}")
                 
         # 3. Zip Results
         jobs[job_id]['status'] = "Creating ZIP archive..."
@@ -116,6 +160,8 @@ def process_file(job_id, file_path):
         with zipfile.ZipFile(zip_path, 'w') as zipf:
             for root, dirs, files in os.walk(job_dir):
                 for file in files:
+                    # Only include files that are not the zip itself (though zip is in RESULTS_FOLDER, not job_dir)
+                    # And ensure we are not zipping any leftover temp folders if walk goes into them (though we tried to delete)
                     zipf.write(os.path.join(root, file), file)
                     
         jobs[job_id]['progress'] = 100

@@ -5,10 +5,16 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, unquote
 import yt_dlp
 
-def download_audio_from_url(url, output_dir):
+def download_audio_from_url(url, output_dir, platform=None):
     """
     Downloads audio from a given URL.
     Attempts to support muzon-club specifically, or falls back to generic extraction.
+    
+    Args:
+        url (str): The URL to download from.
+        output_dir (str): The directory to save the file.
+        platform (str, optional): The platform name (e.g., 'soundcloud', 'muzon'). 
+                                  If provided, prioritizes that specific downloader.
     """
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -17,8 +23,23 @@ def download_audio_from_url(url, output_dir):
         'Referer': url
     }
     
-    # First, try muzon-club specific extraction (since yt-dlp doesn't support it)
-    if 'muzon-club.com' in url:
+    # Normalize platform if provided
+    if platform:
+        platform = platform.lower().strip()
+    
+    # Explicit SoundCloud selection
+    if (platform and 'soundcloud' in platform) or 'soundcloud.com' in url:
+        from soundcloud_downloader import download_soundcloud
+        return download_soundcloud(url, output_dir)
+        
+    # Explicit Archive.org selection
+    if (platform and 'archive' in platform) or 'archive.org' in url:
+        from archive_downloader import download_archive
+        return download_archive(url, output_dir)
+
+
+    # Muzon-Club detection (Explicit or URL-based)
+    if (platform and 'muzon' in platform) or 'muzon-club.com' in url:
         print(f"Detected muzon-club URL, using custom scraper")
         try:
             response = requests.get(url, headers=headers, timeout=30)

@@ -1,8 +1,15 @@
 import whisper
 import os
-import shutil
-import subprocess
-from pathlib import Path
+
+# Global cache for the model
+_model_cache = {}
+
+def get_model(model_size):
+    if model_size not in _model_cache:
+        print(f"[DEBUG] Loading Whisper model '{model_size}'...")
+        _model_cache[model_size] = whisper.load_model(model_size)
+        print(f"[DEBUG] Model '{model_size}' loaded.")
+    return _model_cache[model_size]
 
 def separate_vocals(audio_path, output_dir):
     """
@@ -57,21 +64,12 @@ def transcribe_audio(audio_path, model_size='large', use_separation=True):
         str: Transcribed text.
     """
     try:
-        transcription_audio_path = audio_path
-
-        if use_separation:
-            # Create temporary directory for separated audio
-            audio_dir = os.path.dirname(audio_path) if os.path.dirname(audio_path) else '.'
-            audio_filename = Path(audio_path).stem
-            separation_dir = os.path.join(audio_dir, f"{audio_filename}_separated")
-
-            # Separate vocals
-            transcription_audio_path = separate_vocals(audio_path, separation_dir)
-
-        # Transcribe
-        model = whisper.load_model(model_size)
-        result = model.transcribe(transcription_audio_path)
+        print(f"[DEBUG] Starting transcription for: {os.path.basename(audio_path)}")
+        model = get_model(model_size)
+        result = model.transcribe(audio_path)
+        print(f"[DEBUG] Transcription finished for: {os.path.basename(audio_path)}")
         return result['text']
 
     except Exception as e:
+        print(f"[ERROR] Transcription failed: {e}")
         return f"Error transcribing audio: {str(e)}"
