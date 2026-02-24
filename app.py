@@ -1,4 +1,6 @@
 import os
+import sys
+import logging
 import time
 import json
 import zipfile
@@ -13,9 +15,38 @@ from downloader import download_audio_from_url
 from transcriber import transcribe_audio
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['RESULTS_FOLDER'] = 'results'
+
+# Determine a stable base directory for storage when running bundled as an exe
+if getattr(sys, 'frozen', False):
+    # When frozen by PyInstaller, use the executable's directory for persistent data
+    base_dir = os.path.dirname(sys.executable)
+else:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+
+app.config['UPLOAD_FOLDER'] = os.path.join(base_dir, 'uploads')
+app.config['RESULTS_FOLDER'] = os.path.join(base_dir, 'results')
 app.config['SECRET_KEY'] = 'supersecretkey'
+
+# Logging to a file for easier debugging on target machines
+log_file = os.path.join(base_dir, 'app.log')
+logging.basicConfig(level=logging.INFO, filename=log_file,
+                    format='%(asctime)s %(levelname)s: %(message)s')
+logging.getLogger().addHandler(logging.StreamHandler())
+
+
+def _add_bundled_ffmpeg_to_path():
+    """If the app is bundled by PyInstaller and includes an ffmpeg/bin folder,
+    prepend it to PATH so subprocess calls to ffmpeg/ffprobe succeed on target machines.
+    This also works when running from source if you place an `ffmpeg/bin` folder next to the script.
+    """
+    base = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    ffmpeg_bin = os.path.join(base, 'ffmpeg', 'bin')
+    if os.path.isdir(ffmpeg_bin):
+        os.environ['PATH'] = ffmpeg_bin + os.pathsep + os.environ.get('PATH', '')
+
+
+# Ensure bundled ffmpeg is on PATH early
+_add_bundled_ffmpeg_to_path()
 
 # Ensure directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -33,6 +64,7 @@ def process_file(job_id, file_path):
     os.makedirs(job_dir, exist_ok=True)
     
     try:
+        logging.info(f"Started processing job {job_id} for file {file_path}")
         jobs[job_id]['status'] = 'Reading file...'
         jobs[job_id]['progress'] = 5
         
@@ -55,6 +87,7 @@ def process_file(job_id, file_path):
             raise ValueError("No rows found")
             
         jobs[job_id]['log'].append(f"Found {total_urls} URLs to process.")
+        logging.info(f"Job {job_id}: {total_urls} URLs")
         
         # Process each URL
         audio_files = []
@@ -93,10 +126,12 @@ def process_file(job_id, file_path):
                     
                 audio_files.append(audio_path)
                 jobs[job_id]['log'].append(f"Downloaded: {os.path.basename(audio_path)}")
+                logging.info(f"Job {job_id}: downloaded {audio_path}")
                 
                 # 2. Separate Vocals (Demucs)
                 jobs[job_id]['status'] = f"Separating vocals {current_idx}/{total_urls}: {os.path.basename(audio_path)}"
                 jobs[job_id]['log'].append(f"Separating vocals...")
+                logging.info(f"Job {job_id}: starting separation for {audio_path}")
                 
                 # Create a temp dir for this file's separation to keep main dir clean
                 temp_demucs_dir = os.path.join(job_dir, f"temp_demucs_{i}")
@@ -106,12 +141,15 @@ def process_file(job_id, file_path):
                 
                 if vocals_path:
                     jobs[job_id]['log'].append(f"Vocals separated successfully.")
+                    logging.info(f"Job {job_id}: vocals at {vocals_path}")
                 else:
                     jobs[job_id]['log'].append(f"Vocal separation failed, using original audio.")
+                    logging.warning(f"Job {job_id}: vocal separation failed for {audio_path}")
 
                 # 3. Transcribe Audio
                 jobs[job_id]['status'] = f"Transcribing {current_idx}/{total_urls}..."
                 jobs[job_id]['log'].append(f"Transcribing...")
+                logging.info(f"Job {job_id}: transcribing {transcription_source}")
                 
                 print(f"[DEBUG] Calling transcribe_audio for {os.path.basename(transcription_source)}")
                 transcript_text = transcribe_audio(transcription_source)
@@ -125,6 +163,7 @@ def process_file(job_id, file_path):
                 
                 with open(txt_path, 'w', encoding='utf-8') as f:
                     f.write(transcript_text)
+                logging.info(f"Job {job_id}: transcription saved to {txt_path}")
 
                 # Copy separated audio files to job directory
                 audio_basename = os.path.splitext(os.path.basename(audio_path))[0]
@@ -139,9 +178,11 @@ def process_file(job_id, file_path):
                     jobs[job_id]['log'].append(f"Separated audio files saved.")
 
                 jobs[job_id]['log'].append(f"Transcription completed.")
+                logging.info(f"Job {job_id}: completed item {current_idx}/{total_urls}")
                 
             except Exception as e:
                 jobs[job_id]['log'].append(f"Error processing {url}: {str(e)}")
+                logging.exception(f"Job {job_id}: error processing {url}")
             finally:
                 # Cleanup Demucs temp files for this track
                 if temp_demucs_dir and os.path.exists(temp_demucs_dir):
@@ -242,4 +283,6 @@ def download_result(filename):
     return send_file(os.path.join(app.config['RESULTS_FOLDER'], filename), as_attachment=True)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+    # When bundled, run without debugger and allow threading so background workers
+    # and request handling run concurrently.
+    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False, threaded=True)

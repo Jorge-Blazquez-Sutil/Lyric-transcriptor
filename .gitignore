@@ -5,3 +5,6 @@ __pycache__/
 uploads/
 results/
 test_data/
+build/
+dist/
+ffmpeg/
