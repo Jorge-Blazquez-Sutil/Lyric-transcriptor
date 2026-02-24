@@ -4,7 +4,7 @@
 a = Analysis(
     ['app.py'],
     pathex=[],
-    binaries=[('C:\\Users\\AlumnoB2\\Documents\\Becario\\Scripts\\Lyric transcriptor\\Lyric-transcriptor\\ffmpeg\\bin\\ffmpeg.exe', 'ffmpeg\\\\bin'), ('C:\\Users\\AlumnoB2\\Documents\\Becario\\Scripts\\Lyric transcriptor\\Lyric-transcriptor\\ffmpeg\\bin\\ffprobe.exe', 'ffmpeg\\\\bin')],
+    binaries=[],
     datas=[('templates', 'templates'), ('static', 'static'), ('uploads', 'uploads'), ('results', 'results'), ('ffmpeg', 'ffmpeg'), ('whisper_assets', 'whisper/assets')],
     hiddenimports=[],
     hookspath=[],

@@ -20,6 +20,22 @@ try {
     python -m pip install --upgrade pip setuptools wheel
     pip install pyinstaller
 
+    # Download Demucs model (htdemucs) if not already cached
+    Write-Host "Ensuring Demucs models are available..."
+    $demucsCache = Join-Path $env:USERPROFILE ".demucs"
+    $htdemucsModel = Join-Path $demucsCache "htdemucs.pt"
+    if (-Not (Test-Path $htdemucsModel)) {
+        Write-Host "Downloading Demucs htdemucs model (this may take a few minutes)..."
+        python -c "import demucs.pretrained; demucs.pretrained.get_model('htdemucs')" > $null 2>&1
+        if (Test-Path $htdemucsModel) {
+            Write-Host "Demucs model downloaded successfully."
+        } else {
+            Write-Host "Warning: Demucs model download may have failed." -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "Demucs model already cached."
+    }
+
     # Copy whisper assets to a local folder for bundling
     Write-Host "Copying whisper assets for bundling..."
     $whisperAssetsDir = Join-Path (Get-Location) "whisper_assets"
@@ -30,6 +46,18 @@ try {
         Write-Host "Whisper assets copied to: $whisperAssetsDir"
     } else {
         Write-Host "Warning: Whisper assets not found at $venvWhisperAssetsDir" -ForegroundColor Yellow
+    }
+
+    # Copy Demucs cache to local folder for bundling
+    Write-Host "Copying Demucs models for bundling..."
+    $demucsLocalDir = Join-Path (Get-Location) "demucs_models"
+    $demucsCache = Join-Path $env:USERPROFILE ".demucs"
+    if (Test-Path $demucsCache) {
+        if (Test-Path $demucsLocalDir) { Remove-Item -Recurse -Force $demucsLocalDir }
+        Copy-Item -Path $demucsCache -Destination $demucsLocalDir -Recurse -Force
+        Write-Host "Demucs models copied to: $demucsLocalDir"
+    } else {
+        Write-Host "Warning: Demucs cache not found at $demucsCache" -ForegroundColor Yellow
     }
 
     # Ensure ffmpeg folder exists; if not, download a static Windows build and extract
@@ -74,6 +102,15 @@ try {
         "ffmpeg;ffmpeg",
         "whisper_assets;whisper/assets"
     )
+
+    # Add demucs models only if they exist locally
+    $demucsLocalDir = Join-Path (Get-Location) "demucs_models"
+    if (Test-Path $demucsLocalDir) {
+        $addData += "demucs_models;.demucs"
+        Write-Host "Demucs models will be included in bundle."
+    } else {
+        Write-Host "Demucs models not found locally; they will be downloaded on first use." -ForegroundColor Yellow
+    }
 
     # Binaries to include (ffmpeg, ffprobe)
     $addBin = @()

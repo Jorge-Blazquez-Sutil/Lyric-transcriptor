@@ -45,8 +45,20 @@ def _add_bundled_ffmpeg_to_path():
         os.environ['PATH'] = ffmpeg_bin + os.pathsep + os.environ.get('PATH', '')
 
 
+def _redirect_demucs_cache():
+    """If the app is bundled with Demucs models, redirect the cache directory
+    to the bundled models so they don't need to be downloaded on target machines.
+    """
+    base = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    bundled_demucs = os.path.join(base, '.demucs')
+    if os.path.isdir(bundled_demucs):
+        os.environ['DEMUCS_ROOT'] = bundled_demucs
+
+
 # Ensure bundled ffmpeg is on PATH early
 _add_bundled_ffmpeg_to_path()
+# Ensure bundled Demucs models are found
+_redirect_demucs_cache()
 
 # Ensure directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
